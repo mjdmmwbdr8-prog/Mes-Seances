@@ -91,8 +91,7 @@ button{font:inherit;cursor:pointer}
 <p class="q">Une action est-elle à prévoir après la séance ?</p><div data-yn="act"></div>
 <div class="reveal" data-w="act=oui"><div>
 <p class="q">Laquelle ?</p><div class="chips" id="post"></div>
-<div class="row"><div><label class="f" for="prio">Priorité</label><select id="prio"><option>Normale</option><option>Cette semaine</option><option>Urgente</option></select></div>
-<div><label class="f" for="due">Échéance</label><input type="date" id="due"></div></div>
+<label class="f" for="due">Échéance</label><input type="date" id="due">
 <label class="f" for="com">Autre action (administratif)</label>
 <textarea id="com" placeholder="ex. envoyer l’exercice de respiration"></textarea>
 </div></div>
@@ -131,6 +130,25 @@ button{font:inherit;cursor:pointer}
 <button class="go" id="mcopy">Copier le texte</button>
 </div>
 </section>
+<section id="v-fb" class="hide">
+<h1>Votre avis</h1>
+<p class="note">Une minute pour m’aider à améliorer l’outil. N’écrivez aucune information sur un patient.</p>
+<div class="card">
+<label class="f" for="fbpro">Votre profession</label><input type="text" id="fbpro" placeholder="ex. psychologue, kinésithérapeute">
+<p class="q">Note globale (1 à 5)</p><div class="chips" id="fbnote"></div>
+<p class="q">Temps pour clôturer une séance</p><div class="chips" id="fbtemps"></div>
+<p class="q">L’utiliseriez-vous au quotidien ?</p><div class="chips" id="fbuse"></div>
+<p class="q">Prix acceptable</p><div class="chips" id="fbprix"></div>
+</div>
+<div class="card">
+<label class="f" for="fbplus">Ce qui est utile</label><textarea id="fbplus"></textarea>
+<label class="f" for="fbmanque">Ce qui manque</label><textarea id="fbmanque"></textarea>
+<label class="f" for="fbmoins">Ce qui est confus ou inutile</label><textarea id="fbmoins"></textarea>
+<label class="f" for="fbcontact">Contact (facultatif)</label><input type="text" id="fbcontact" placeholder="e-mail ou téléphone">
+</div>
+<button class="go" id="fbmail">Envoyer par e-mail</button>
+<button class="go" id="fbcopy" style="background:var(--soft);color:var(--accent)">Copier le texte</button>
+</section>
 </main>
 
 <nav class="tabs" role="tablist">
@@ -138,6 +156,7 @@ button{font:inherit;cursor:pointer}
 <button role="tab" data-v="todo" aria-selected="false">À faire <span id="cnt"></span></button>
 <button role="tab" data-v="mod" aria-selected="false">Modèles</button>
 <button role="tab" data-v="rec" aria-selected="false">Recettes</button>
+<button role="tab" data-v="fb" aria-selected="false">Avis</button>
 </nav>
 
 <script>
@@ -162,7 +181,7 @@ function yn(n){return '<div class="yn" role="radiogroup"><label><input type="rad
 document.querySelectorAll("[data-yn]").forEach(function(e){e.outerHTML=yn(e.dataset.yn)});
 chips("pre",PRE,"checkbox","pre");chips("post",POST,"checkbox","post");
 chips("ptype",["Espèces","Chèque","Carte bancaire","Virement"],"radio","ptype");
-chips("pwhy",["Tiers payant / CPAM","Mutuelle","Virement à venir","À relancer"],"radio","pwhy");
+chips("pwhy",["Tiers payant / CPAM","Virement à venir","À relancer"],"radio","pwhy");
 chips("motif",["Pas encore eu lieu","Annulé par le patient","Absent sans prévenir","Reporté","Annulé par moi"],"radio","motif");
 chips("nrdvc",["À proposer","Le patient doit rappeler","À relancer","Aucun"],"radio","nrdvc");
 var TK={"Facture":"facture","Compte rendu":"cr","Questionnaire":"quest","Exercices":"exo","Préparer facture":"facture","Préparer questionnaire":"quest","Envoyer échelle d’évaluation":"quest"};
@@ -184,7 +203,7 @@ function plan(){
    if(pi.why==="Tiers payant / CPAM"||pi.why==="Mutuelle")add("Suivre le remboursement tiers payant");
    if(pi.why==="Virement à venir")add("Vérifier la réception du virement");
    if(pi.why==="À relancer")add("Relancer le paiement",{prio:"Cette semaine"});
-   if(v("act")==="oui"){var pr=$("prio").value,du=$("due").value;vs("post").forEach(function(l){add(l,{prio:pr,due:du})});var c=$("com").value.trim();if(c)add(c,{prio:pr,due:du})}
+   if(v("act")==="oui"){var du=$("due").value,pr=du&&du<=new Date(Date.now()+6048e5).toISOString().slice(0,10)?"Cette semaine":"Normale";vs("post").forEach(function(l){add(l,{prio:pr,due:du})});var c=$("com").value.trim();if(c)add(c,{prio:pr,due:du})}
   }
   var nr=v("nrdv"),nc=v("nrdvc");
   if(rec)rec.rdv=nr==="oui"?"Fixé":(nc||"");
@@ -195,7 +214,7 @@ function plan(){
 function upd(){sync();var pi=payInfo();$("pst").textContent=pi.stat?"Statut : "+pi.stat:"";
  var p=plan(),n=p.T.length;$("sum").textContent=(!p.rec&&!n)?"Répondez aux questions pour voir ce qui sera créé":(p.rec?"1 séance enregistrée, ":"")+n+" tâche"+(n>1?"s":"")+" à créer"}
 $("v-cloture").addEventListener("input",upd);$("v-cloture").addEventListener("change",upd);
-function resetForm(){document.querySelectorAll("#v-cloture input").forEach(function(i){if(i.type==="radio"||i.type==="checkbox")i.checked=false;else i.value=""});$("com").value="";$("prio").selectedIndex=0;upd()}
+function resetForm(){document.querySelectorAll("#v-cloture input").forEach(function(i){if(i.type==="radio"||i.type==="checkbox")i.checked=false;else i.value=""});$("com").value="";upd()}
 $("save").onclick=function(){var p=plan();
  if(!p.pid){$("pid").focus();toast("Indiquez un identifiant patient");return}
  if(!ctx("st")){toast("Répondez à la question sur l’entretien");return}
@@ -228,7 +247,7 @@ function renderRec(){
  $("rec").innerHTML=p.length?p.map(function(s){return '<div class="card"><b>'+fmt(s.amt)+'</b> · '+esc(s.type||"—")+'<div class="meta">'+esc(s.pid)+" · "+fdate(s.date)+'</div><select data-s="'+s.id+'" aria-label="Statut">'+STAT.map(function(x){return "<option"+(x===s.stat?" selected":"")+">"+x+"</option>"}).join("")+'</select></div>'}).join(""):'<p class="empty">Aucun paiement enregistré.</p>';
  document.querySelectorAll("[data-s]").forEach(function(c){c.onchange=function(){S.seances.forEach(function(s){if(String(s.id)===c.dataset.s)s.stat=c.value});persist();renderRec()}});
 }
-function showTab(v){document.querySelectorAll(".tabs button").forEach(function(x){x.setAttribute("aria-selected",x.dataset.v===v)});["cloture","todo","mod","rec"].forEach(function(k){$("v-"+k).classList.toggle("hide",k!==v)});window.scrollTo(0,0)}
+function showTab(v){document.querySelectorAll(".tabs button").forEach(function(x){x.setAttribute("aria-selected",x.dataset.v===v)});["cloture","todo","mod","rec","fb"].forEach(function(k){$("v-"+k).classList.toggle("hide",k!==v)});window.scrollTo(0,0)}
 function fd(d){return new Date(d+"T12:00").toLocaleDateString("fr-FR")}
 function last(p){return S.seances.filter(function(s){return s.pid===p})[0]||{}}
 var Q9=["Peu d’intérêt ou de plaisir à faire les choses","Se sentir triste, déprimé(e) ou désespéré(e)","Difficultés à s’endormir, à rester endormi(e), ou trop dormir","Se sentir fatigué(e) ou avoir peu d’énergie","Peu d’appétit ou manger trop","Mauvaise opinion de soi-même, sentiment d’être nul(le) ou d’avoir déçu les autres","Difficultés à se concentrer","Bouger ou parler si lentement que les autres le remarquent, ou au contraire être agité(e)","Penser qu’il vaudrait mieux mourir, ou envisager de se faire du mal"];
@@ -246,6 +265,14 @@ function fillMod(){var k=checked("mod")[0];if(!k)return;var q=$("mp").value.trim
 $("mchips").innerHTML=MODS.map(function(m,i){return '<label><input type="radio" name="mod" value="'+m[0]+'"'+(i?"":" checked")+'><span>'+m[1]+'</span></label>'}).join("");
 $("mchips").onchange=fillMod;$("mp").oninput=fillMod;fillMod();
 $("mcopy").onclick=function(){var t=$("mt");function fb(){t.select();try{document.execCommand("copy")}catch(e){}toast("Texte copié")}try{navigator.clipboard.writeText(t.value).then(function(){toast("Texte copié")},fb)}catch(e){fb()}};
+var FB_EMAIL="";
+chips("fbnote",["1","2","3","4","5"],"radio","fbnote");
+chips("fbtemps",["Moins d’1 min","1 à 2 min","Plus de 2 min"],"radio","fbtemps");
+chips("fbuse",["Oui","Peut-être","Non"],"radio","fbuse");
+chips("fbprix",["Gratuit","Moins de 10 €/mois","10 à 25 €/mois","Plus de 25 €/mois"],"radio","fbprix");
+function fbText(){var g=function(i){return $(i).value.trim()||"-"},c=function(n){return checked(n)[0]||"-"};return ["AVIS SUR L’APPLI CLÔTURE DE SÉANCE","","Profession : "+g("fbpro"),"Note globale : "+c("fbnote")+"/5","Temps de clôture : "+c("fbtemps"),"Usage au quotidien : "+c("fbuse"),"Prix acceptable : "+c("fbprix"),"","Ce qui est utile :",g("fbplus"),"","Ce qui manque :",g("fbmanque"),"","Ce qui est confus ou inutile :",g("fbmoins"),"","Contact : "+g("fbcontact")].join("\n")}
+$("fbmail").onclick=function(){location.href="mailto:"+FB_EMAIL+"?subject="+encodeURIComponent("Avis appli clôture de séance")+"&body="+encodeURIComponent(fbText())};
+$("fbcopy").onclick=function(){var t=fbText();function fb(){var a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy")}catch(e){}a.remove();toast("Texte copié")}try{navigator.clipboard.writeText(t).then(function(){toast("Texte copié")},fb)}catch(e){fb()}};
 function render(){renderTodo();renderRec()}
 document.querySelectorAll(".tabs button").forEach(function(b){b.onclick=function(){
  document.querySelectorAll(".tabs button").forEach(function(x){x.setAttribute("aria-selected",x===b)});
