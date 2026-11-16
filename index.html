@@ -6,6 +6,8 @@
 <title>Clôture de séance</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap">
 <style>
+/* COULEURS : modifiez les variables ci-dessous (--accent = couleur principale).
+   Le premier bloc est le thème clair, les deux blocs suivants le thème sombre. */
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#f3f6f5;--card:#fff;--ink:#16302f;--mute:#5d7270;--line:#d9e3e1;--accent:#1f6f6a;--on:#fff;--warn:#b4531f;--ok:#2e7d4f;--soft:#e3efed}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0f1b1a;--card:#172625;--ink:#e6f0ee;--mute:#93aaa7;--line:#27403e;--accent:#5cc2b8;--on:#08201e;--warn:#f0a070;--ok:#6fcf97;--soft:#1f3634}}
@@ -62,6 +64,12 @@ button{font:inherit;cursor:pointer}
 </head>
 <body>
 <main>
+<!-- =================================================================
+     ONGLET 1 : CLÔTURE DE SÉANCE (le formulaire)
+     Les blocs « reveal » s’affichent selon une réponse :
+     data-w="done=non" signifie « visible si la question done vaut non ».
+     data-yn="nom" fabrique une question Oui / Non.
+     ================================================================= -->
 <section id="v-cloture">
 <h1>Clôture de séance</h1>
 <p class="note">Répondez par oui ou non : seules les questions utiles apparaissent. Identifiant ou initiales uniquement, jamais de notes cliniques.</p>
@@ -108,18 +116,21 @@ button{font:inherit;cursor:pointer}
 <div class="savebar"><div class="meta" id="sum"></div><button class="go" id="save">Enregistrer</button></div>
 </section>
 
+<!-- ONGLET 2 : À FAIRE (liste générée automatiquement, rien à modifier ici) -->
 <section id="v-todo" class="hide">
 <h1>À faire</h1>
 <p class="note">Les patients dont la séance n’a pas encore eu lieu passent en premier, la plus proche d’abord. Ensuite, les autres tâches par priorité et échéance.</p>
 <div id="todo"></div>
 </section>
 
+<!-- ONGLET 4 : RECETTES (calculé automatiquement) -->
 <section id="v-rec" class="hide">
 <h1>Recettes</h1>
 <div class="kpis"><div class="kpi"><span class="meta">Encaissé ce trimestre</span><b id="k1">0 €</b></div><div class="kpi"><span class="meta">En attente / impayé</span><b id="k2">0 €</b></div></div>
 <div id="rec"></div>
 <button class="link" id="reset">Effacer les données de démonstration</button>
 </section>
+<!-- ONGLET 3 : MODÈLES (les textes se modifient dans le script, voir « MODÈLES DE TEXTE ») -->
 <section id="v-mod" class="hide">
 <h1>Modèles</h1>
 <p class="note">Pré-remplis avec le patient et sa dernière séance. Complétez les [crochets], puis copiez dans votre e-mail ou votre document. Rien n’est envoyé.</p>
@@ -130,6 +141,7 @@ button{font:inherit;cursor:pointer}
 <button class="go" id="mcopy">Copier le texte</button>
 </div>
 </section>
+<!-- ONGLET 5 : AVIS DES TESTEURS (masquable avec SHOW_FEEDBACK dans le script) -->
 <section id="v-fb" class="hide">
 <h1>Votre avis</h1>
 <p class="note">Une minute pour m’aider à améliorer l’outil. N’écrivez aucune information sur un patient.</p>
@@ -151,6 +163,7 @@ button{font:inherit;cursor:pointer}
 </section>
 </main>
 
+<!-- BARRE D’ONGLETS : chaque bouton ouvre la section portant le même nom (data-v) -->
 <nav class="tabs" role="tablist">
 <button role="tab" data-v="cloture" aria-selected="true">Clôture</button>
 <button role="tab" data-v="todo" aria-selected="false">À faire <span id="cnt"></span></button>
@@ -160,9 +173,22 @@ button{font:inherit;cursor:pointer}
 </nav>
 
 <script>
+// =====================================================================
+// RÉGLAGES : les deux lignes à modifier le plus souvent
+// =====================================================================
+// Adresse qui reçoit les avis des testeurs (onglet « Avis »)
+var FB_EMAIL="mjdmmwbdr8@privaterelay.appleid.com";
+// true = l’onglet « Avis » est visible ; false = il est masqué
+var SHOW_FEEDBACK=true;
+
+// LISTES MODIFIABLES : ajoutez, retirez ou renommez les choix entre guillemets.
+// Préparations proposées pour une séance à venir
 var PRE=["Relire notes précédentes","Relire exercices remis","Préparer questionnaire","Envoyer échelle d’évaluation","Préparer facture","Préparer feuille de soins","Confirmer le rendez-vous"];
+// (liste conservée pour mémoire, non utilisée)
 var PAY=["Espèces","Chèque","Virement","Carte","Tiers payant / CPAM","Mutuelle","Non réglé"];
+// Statuts de paiement affichés dans l’onglet Recettes
 var STAT=["Reçu","En attente","À relancer","Tiers payant à suivre","Non réglé"];
+// Actions possibles après une séance (chacune crée une tâche dans « À faire »)
 var POST=["Exercices","Questionnaire","Facture","Feuille de soins","Compte rendu","Autre"];
 var S={seances:[],taches:[]};
 function load(){try{var r=localStorage.getItem("cloture-v1");if(r)S=JSON.parse(r)}catch(e){}if(!S.upcoming)S.upcoming=[]}
@@ -180,7 +206,7 @@ function inQuarter(d){var a=new Date(d),n=new Date();return a.getFullYear()===n.
 function yn(n){return '<div class="yn" role="radiogroup"><label><input type="radio" name="'+n+'" value="oui"><span>Oui</span></label><label><input type="radio" name="'+n+'" value="non"><span>Non</span></label></div>'}
 document.querySelectorAll("[data-yn]").forEach(function(e){e.outerHTML=yn(e.dataset.yn)});
 chips("pre",PRE,"checkbox","pre");chips("post",POST,"checkbox","post");
-chips("ptype",["Espèces","Chèque","Carte bancaire","Virement"],"radio","ptype");
+chips("ptype",["Espèces","Chèque","Virement"],"radio","ptype");
 chips("pwhy",["Tiers payant / CPAM","Virement à venir","À relancer"],"radio","pwhy");
 chips("motif",["Pas encore eu lieu","Annulé par le patient","Absent sans prévenir","Reporté","Annulé par moi"],"radio","motif");
 chips("nrdvc",["À proposer","Le patient doit rappeler","À relancer","Aucun"],"radio","nrdvc");
@@ -192,6 +218,8 @@ function ctx(n){var d=v("done"),m=v("motif");if(n==="st")return d==="oui"?"held"
 function sync(){document.querySelectorAll("#v-cloture .reveal").forEach(function(r){var w=r.dataset.w.split("="),x=ctx(w[0]);r.classList.toggle("open",w[1]==="*"?x!==undefined:x===w[1])})}
 function payInfo(){var pd=v("paid");if(pd==="oui"){var t=v("ptype");return t?{type:t,stat:"Reçu"}:{}}
  if(pd==="non"){var w=v("pwhy"),m={"Tiers payant / CPAM":["Tiers payant / CPAM","Tiers payant à suivre"],"Mutuelle":["Mutuelle","Tiers payant à suivre"],"Virement à venir":["Virement","En attente"],"À relancer":["Non réglé","À relancer"]}[w];return m?{type:m[0],stat:m[1],why:w}:{}}return {}}
+// RÈGLES DE CRÉATION DES TÂCHES : ce que le formulaire ajoute dans « À faire »
+// selon les réponses (paiement à relancer, rendez-vous à proposer, etc.).
 function plan(){
  var pid=$("pid").value.trim(),T=[],rec=null,today=todayStr();
  function add(l,o){o=o||{};T.push({pid:pid,label:l,prio:o.prio||"Normale",due:o.due||"",stage:o.stage||"apres",sdate:o.sdate||"",done:false})}
@@ -225,6 +253,7 @@ $("save").onclick=function(){var p=plan();
 function fdl(d){return new Date(d+"T12:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}
 upd();
 
+// AFFICHAGE ET TRI DE « À FAIRE » : séances à venir d’abord, puis priorité et échéance.
 function renderTodo(){
  var po={"Urgente":0,"Cette semaine":1,"Normale":2};
  function key(t){return t.stage==="avant"?"0"+(t.sdate||"9999-99-99"):"1"+(po[t.prio]!==undefined?po[t.prio]:2)+(t.due||"9999-99-99")}
@@ -250,10 +279,13 @@ function renderRec(){
 function showTab(v){document.querySelectorAll(".tabs button").forEach(function(x){x.setAttribute("aria-selected",x.dataset.v===v)});["cloture","todo","mod","rec","fb"].forEach(function(k){$("v-"+k).classList.toggle("hide",k!==v)});window.scrollTo(0,0)}
 function fd(d){return new Date(d+"T12:00").toLocaleDateString("fr-FR")}
 function last(p){return S.seances.filter(function(s){return s.pid===p})[0]||{}}
+// QUESTIONNAIRES : PHQ-9 (humeur) puis GAD-7 (anxiété). Une phrase par ligne.
 var Q9=["Peu d’intérêt ou de plaisir à faire les choses","Se sentir triste, déprimé(e) ou désespéré(e)","Difficultés à s’endormir, à rester endormi(e), ou trop dormir","Se sentir fatigué(e) ou avoir peu d’énergie","Peu d’appétit ou manger trop","Mauvaise opinion de soi-même, sentiment d’être nul(le) ou d’avoir déçu les autres","Difficultés à se concentrer","Bouger ou parler si lentement que les autres le remarquent, ou au contraire être agité(e)","Penser qu’il vaudrait mieux mourir, ou envisager de se faire du mal"];
 var Q7=["Sentiment de nervosité, d’anxiété ou de tension","Incapacité de s’arrêter de s’inquiéter ou de contrôler ses inquiétudes","Inquiétude excessive à propos de différentes choses","Difficulté à se détendre","Agitation telle qu’il est difficile de rester tranquille","Irritabilité ou énervement facile","Crainte que quelque chose de terrible puisse arriver"];
 function sc(a){return a.map(function(q,i){return (i+1)+". "+q+"   0  1  2  3"}).join("\n")}
 var MODS=[["facture","Facture"],["cr","Compte rendu"],["quest","Questionnaires"],["scores","Résultats questionnaires"],["exo","Exercices"]];
+// MODÈLES DE TEXTE : facture, compte rendu, questionnaires, résultats, exercices.
+// Les [crochets] sont à compléter par vous. Changez librement les phrases.
 var TPL={
 facture:function(p,s){var d=s.date||todayStr();return ["FACTURE n° FAC-"+d.replace(/-/g,"")+"-"+p,"Date : "+fd(d),"","[Nom Prénom], psychologue","N° ADELI / RPPS : [ … ]   SIRET : [ … ]","[Adresse du cabinet]","","Patient : "+p+" (nom complet à renseigner)","","Prestation : séance de psychologie du "+fd(d),"Montant : "+(s.amt?s.amt+" €":"[ … ] €"),"Règlement : "+(s.type||"[ … ]")+(s.stat?" ("+s.stat.toLowerCase()+")":""),"","[Mention TVA : à confirmer avec votre comptable]"].join("\n")},
 cr:function(p){return ["COMPTE RENDU (brouillon à relire avant envoi)","Contenu administratif : pas de notes cliniques détaillées.","","Patient : "+p,"Date : "+fd(todayStr()),"Destinataire : [ … ]","","Objet : [ … ]","Suivi : [ … ] séances depuis le [date]","Éléments transmis avec l’accord du patient :","- [ … ]","Suite proposée :","- [ … ]","","[Nom Prénom], psychologue"].join("\n")},
@@ -265,7 +297,7 @@ function fillMod(){var k=checked("mod")[0];if(!k)return;var q=$("mp").value.trim
 $("mchips").innerHTML=MODS.map(function(m,i){return '<label><input type="radio" name="mod" value="'+m[0]+'"'+(i?"":" checked")+'><span>'+m[1]+'</span></label>'}).join("");
 $("mchips").onchange=fillMod;$("mp").oninput=fillMod;fillMod();
 $("mcopy").onclick=function(){var t=$("mt");function fb(){t.select();try{document.execCommand("copy")}catch(e){}toast("Texte copié")}try{navigator.clipboard.writeText(t.value).then(function(){toast("Texte copié")},fb)}catch(e){fb()}};
-var FB_EMAIL="";
+// (l’adresse des avis se règle tout en haut du script, dans RÉGLAGES)
 chips("fbnote",["1","2","3","4","5"],"radio","fbnote");
 chips("fbtemps",["Moins d’1 min","1 à 2 min","Plus de 2 min"],"radio","fbtemps");
 chips("fbuse",["Oui","Peut-être","Non"],"radio","fbuse");
@@ -278,6 +310,8 @@ document.querySelectorAll(".tabs button").forEach(function(b){b.onclick=function
  document.querySelectorAll(".tabs button").forEach(function(x){x.setAttribute("aria-selected",x===b)});
  showTab(b.dataset.v)}});
 $("reset").onclick=function(){if(confirm("Effacer toutes les données de cette maquette ?")){S={seances:[],taches:[],upcoming:[]};persist();render()}};
+// Masque l’onglet Avis si SHOW_FEEDBACK vaut false
+if(!SHOW_FEEDBACK){document.querySelector('.tabs button[data-v="fb"]').style.display="none"}
 load();render();
 </script>
 </body>
